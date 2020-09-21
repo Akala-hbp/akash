@@ -20,6 +20,7 @@ CACHE_VERSIONS        := $(CACHE)/versions
 BUF_VERSION           ?= 0.20.5
 PROTOC_VERSION        ?= 3.11.2
 GOLANGCI_LINT_VERSION ?= v1.27.0
+GOLANG_CROSS_VERSION  ?= v1.15.2
 
 # <TOOL>_VERSION_FILE points to the marker file for the installed version.
 # If <TOOL>_VERSION_FILE is changed, the binary will be re-downloaded.
@@ -247,7 +248,7 @@ ifeq ($(UNAME_OS),Darwin)
   PROTOC_ZIP ?= protoc-${PROTOC_VERSION}-osx-x86_64.zip
 endif
 
-proto-gen: $(PROTOC) protovendor
+proto-gen: $(PROTOC) modvendor
 	./script/protocgen.sh
 
 proto-lint: $(BUF)
@@ -256,14 +257,16 @@ proto-lint: $(BUF)
 proto-check-breaking: $(BUF)
 	$(BUF) check breaking --against-input '.git#branch=master'
 
-.PHONY: protovendor
-protovendor: modsensure $(MODVENDOR)
-	@echo "vendoring *.proto files..."
+.PHONY: modvendor
+modvendor: modsensure $(MODVENDOR)
+	@echo "vendoring non-go files files..."
 	$(MODVENDOR) -copy="**/*.proto" -include=\
 github.com/cosmos/cosmos-sdk/proto,\
 github.com/tendermint/tendermint/proto,\
 github.com/gogo/protobuf,\
 github.com/regen-network/cosmos-proto/cosmos.proto
+	$(MODVENDOR) -copy="**/*.h **/*.c" -include=\
+github.com/zondax/hid
 
 # Tools installation
 $(CACHE):
@@ -343,7 +346,16 @@ modsensure: deps-tidy deps-vendor
 codegen: generate proto-gen kubetypes
 
 .PHONY: setup-devenv
-setup-devenv: $(GOLANGCI_LINT) $(BUF) $(PROTOC) $(MODVENDOR) deps-vendor protovendor
+setup-devenv: $(GOLANGCI_LINT) $(BUF) $(PROTOC) $(MODVENDOR) deps-vendor modvendor
 
 .PHONY: setup-cienv
-setup-cienv: deps-vendor $(GOLANGCI_LINT)
+setup-cienv: deps-vendor modvendor $(GOLANGCI_LINT)
+
+.PHONY: release-dry-run
+release-dry-run:
+	docker run --rm --privileged --env MAINNET=$(MAINNET) \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v `pwd`:/go/src/github.com/ovrclk/akash \
+		-w /go/src/github.com/ovrclk/akash \
+		goreng/golang-cross:$(GOLANG_CROSS_VERSION) \
+		--rm-dist --skip-validate --skip-publish
