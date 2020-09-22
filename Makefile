@@ -38,6 +38,8 @@ PROTOC                := $(CACHE_BIN)/protoc
 # export MAINNET=true to set build tag mainnet
 ifeq ($(MAINNET),true)
 	BUILD_MAINNET=mainnet
+else
+	MAINNET?=false
 endif
 
 IMAGE_BUILD_ENV = GOOS=linux GOARCH=amd64
@@ -73,17 +75,6 @@ image: image-bins
 
 install:
 	$(GO) install $(BUILD_FLAGS) ./cmd/akash
-
-release:
-	docker run --rm --privileged \
-	-v $(PWD):/go/src/github.com/ovrclk/akash \
-	-v /var/run/docker.sock:/var/run/docker.sock \
-	-w /go/src/github.com/ovrclk/akash \
-	-e GITHUB_TOKEN \
-	-e DOCKER_USERNAME \
-	-e DOCKER_PASSWORD \
-	-e DOCKER_REGISTRY \
-	goreleaser/goreleaser release --rm-dist
 
 image-minikube:
 	eval $$(minikube docker-env) && make image
@@ -353,9 +344,38 @@ setup-cienv: deps-vendor modvendor $(GOLANGCI_LINT)
 
 .PHONY: release-dry-run
 release-dry-run:
-	docker run --rm --privileged --env MAINNET=$(MAINNET) \
+	docker run \
+		--rm \
+		--privileged \
+		-e MAINNET=$(MAINNET) \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v `pwd`:/go/src/github.com/ovrclk/akash \
 		-w /go/src/github.com/ovrclk/akash \
 		goreng/golang-cross:$(GOLANG_CROSS_VERSION) \
 		--rm-dist --skip-validate --skip-publish
+
+.PHONY: release
+release:
+	@if [ -z "$(DOCKER_USERNAME)" ]; then \
+		echo "\033[91mDOCKER_USERNAME is required for release\033[0m";\
+		exit 1;\
+	fi
+	@if [ -z "$(DOCKER_PASSWORD)" ]; then \
+		echo "\033[91mDOCKER_PASSWORD is required for release\033[0m";\
+		exit 1;\
+	fi
+	@if [ -z "$(GORELEASER_ACCESS_TOKEN)" ]; then \
+		echo "\033[91mGORELEASER_ACCESS_TOKEN is required for release\033[0m";\
+		exit 1;\
+	fi
+	docker run \
+		--rm \
+		--privileged \
+		-e MAINNET=$(MAINNET) \
+		-e DOCKER_USERNAME=$(DOCKER_USERNAME) \
+		-e DOCKER_PASSWORD=$(DOCKER_PASSWORD) \
+		-e GITHUB_TOKEN=$(GORELEASER_ACCESS_TOKEN) \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v `pwd`:/go/src/github.com/ovrclk/akash \
+		goreng/golang-cross:${GOLANG_CROSS_VERSION} \
+		release --rm-dist
