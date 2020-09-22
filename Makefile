@@ -362,6 +362,7 @@ release-dry-run: modvendor
 	docker run \
 		--rm \
 		--privileged \
+		-e MAINNET=$(MAINNET) \
 		-e BUILD_FLAGS=$(GORELEASER_FLAGS) \
 		-e LD_FLAGS=$(GORELEASER_LD_FLAGS) \
 		-v /var/run/docker.sock:/var/run/docker.sock \
@@ -379,6 +380,7 @@ release: modvendor
 	docker run \
 		--rm \
 		--privileged \
+		-e MAINNET=$(MAINNET) \
 		-e BUILD_FLAGS=$(GORELEASER_FLAGS) \
 		-e LD_FLAGS=$(GORELEASER_LD_FLAGS) \
 		--env-file .release-env \
