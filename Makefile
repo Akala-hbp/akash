@@ -353,10 +353,6 @@ setup-devenv: $(GOLANGCI_LINT) $(BUF) $(PROTOC) $(MODVENDOR) deps-vendor modvend
 .PHONY: setup-cienv
 setup-cienv: deps-vendor modvendor $(GOLANGCI_LINT)
 
-.PHONY: dummy
-dummy:
-	@echo "$(GORELEASER_LD_FLAGS)"
-
 .PHONY: release-dry-run
 release-dry-run: modvendor
 	docker run \
