@@ -1,7 +1,6 @@
 # See documentation at http://goreleaser.com
 env:
   - GO111MODULE=on
-
 builds:
   - id: akash-darwin-amd64
     binary: akash
@@ -20,7 +19,7 @@ builds:
       -s -w
       -X github.com/cosmos/cosmos-sdk/version.Name=akash
       -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
       -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
       -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
   - id: akash-linux-amd64
@@ -38,7 +37,7 @@ builds:
       -s -w
       -X github.com/cosmos/cosmos-sdk/version.Name=akash
       -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
       -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
       -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
   - id: akash-linux-arm64
@@ -58,7 +57,7 @@ builds:
       -s -w
       -X github.com/cosmos/cosmos-sdk/version.Name=akash
       -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
       -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
       -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
   - id: akash-windows-amd64
@@ -79,7 +78,7 @@ builds:
       -buildmode=exe
       -X github.com/cosmos/cosmos-sdk/version.Name=akash
       -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
       -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
       -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
 

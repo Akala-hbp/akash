@@ -34,20 +34,21 @@ MODVENDOR              = $(CACHE_BIN)/modvendor
 BUF                   := $(CACHE_BIN)/buf
 PROTOC                := $(CACHE_BIN)/protoc
 
+IMAGE_BUILD_ENV = GOOS=linux GOARCH=amd64
+
 # Setting mainnet flag based on env value
 # export MAINNET=true to set build tag mainnet
 ifeq ($(MAINNET),true)
 	BUILD_MAINNET=mainnet
+	BUILD_TAGS=netgo,ledger,mainnet
 else
-	MAINNET?=false
+	BUILD_TAGS=netgo,ledger
 endif
 
-IMAGE_BUILD_ENV = GOOS=linux GOARCH=amd64
-
-BUILD_FLAGS = -mod=readonly -tags "netgo ledger $(BUILD_MAINNET)" -ldflags \
+BUILD_FLAGS = -mod=readonly -tags "$(BUILD_TAGS)" -ldflags \
  '-X github.com/cosmos/cosmos-sdk/version.Name=akash \
   -X github.com/cosmos/cosmos-sdk/version.AppName=akash \
-  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger" \
+  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(BUILD_TAGS)" \
   -X github.com/cosmos/cosmos-sdk/version.Version=$(shell git describe --tags | sed 's/^v//') \
   -X github.com/cosmos/cosmos-sdk/version.Commit=$(shell git log -1 --format='%H')'
 
@@ -343,7 +344,7 @@ setup-devenv: $(GOLANGCI_LINT) $(BUF) $(PROTOC) $(MODVENDOR) deps-vendor modvend
 setup-cienv: deps-vendor modvendor $(GOLANGCI_LINT)
 
 .PHONY: release-dry-run
-release-dry-run:
+release-dry-run: modvendor
 	docker run \
 		--rm \
 		--privileged \
@@ -355,7 +356,7 @@ release-dry-run:
 		--rm-dist --skip-validate --skip-publish
 
 .PHONY: release
-release:
+release: modvendor
 	@if [ -z "$(DOCKER_USERNAME)" ]; then \
 		echo "\033[91mDOCKER_USERNAME is required for release\033[0m";\
 		exit 1;\
