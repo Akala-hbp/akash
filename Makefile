@@ -36,21 +36,31 @@ PROTOC                := $(CACHE_BIN)/protoc
 
 IMAGE_BUILD_ENV = GOOS=linux GOARCH=amd64
 
+# BUILD_TAGS are for builds withing this makefile
+# GORELEASER_BUILD_TAGS are for goreleaser only
 # Setting mainnet flag based on env value
 # export MAINNET=true to set build tag mainnet
 ifeq ($(MAINNET),true)
 	BUILD_MAINNET=mainnet
 	BUILD_TAGS=netgo,ledger,mainnet
+	GORELEASER_BUILD_TAGS=$(BUILD_TAGS)
 else
 	BUILD_TAGS=netgo,ledger
+	GORELEASER_BUILD_TAGS=$(BUILD_TAGS),testnet
 endif
 
-BUILD_FLAGS = -mod=readonly -tags "$(BUILD_TAGS)" -ldflags \
- '-X github.com/cosmos/cosmos-sdk/version.Name=akash \
-  -X github.com/cosmos/cosmos-sdk/version.AppName=akash \
-  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(BUILD_TAGS)" \
-  -X github.com/cosmos/cosmos-sdk/version.Version=$(shell git describe --tags | sed 's/^v//') \
-  -X github.com/cosmos/cosmos-sdk/version.Commit=$(shell git log -1 --format='%H')'
+GORELEASER_FLAGS    = -tags="$(GORELEASER_BUILD_TAGS)"
+GORELEASER_LD_FLAGS = '-s -w -X github.com/cosmos/cosmos-sdk/version.Name=akash \
+-X github.com/cosmos/cosmos-sdk/version.AppName=akash \
+-X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(GORELEASER_BUILD_TAGS)" \
+-X github.com/cosmos/cosmos-sdk/version.Version=$(shell git describe --tags --abbrev=0) \
+-X github.com/cosmos/cosmos-sdk/version.Commit=$(shell git log -1 --format='%H')'
+
+BUILD_FLAGS = -mod=readonly -tags "$(BUILD_TAGS)" -ldflags '-X github.com/cosmos/cosmos-sdk/version.Name=akash \
+-X github.com/cosmos/cosmos-sdk/version.AppName=akash \
+-X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(BUILD_TAGS)" \
+-X github.com/cosmos/cosmos-sdk/version.Version=$(shell git describe --tags | sed 's/^v//') \
+-X github.com/cosmos/cosmos-sdk/version.Commit=$(shell git log -1 --format='%H')'
 
 all: build bins
 
@@ -343,40 +353,37 @@ setup-devenv: $(GOLANGCI_LINT) $(BUF) $(PROTOC) $(MODVENDOR) deps-vendor modvend
 .PHONY: setup-cienv
 setup-cienv: deps-vendor modvendor $(GOLANGCI_LINT)
 
+.PHONY: dummy
+dummy:
+	@echo "$(GORELEASER_LD_FLAGS)"
+
 .PHONY: release-dry-run
 release-dry-run: modvendor
 	docker run \
 		--rm \
 		--privileged \
-		-e MAINNET=$(MAINNET) \
+		-e BUILD_FLAGS=$(GORELEASER_FLAGS) \
+		-e LD_FLAGS=$(GORELEASER_LD_FLAGS) \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v `pwd`:/go/src/github.com/ovrclk/akash \
 		-w /go/src/github.com/ovrclk/akash \
-		goreng/golang-cross:$(GOLANG_CROSS_VERSION) \
-		--rm-dist --skip-validate --skip-publish
+		troian/golang-cross:${GOLANG_CROSS_VERSION} \
+		--rm-dist --skip-validate --skip-publish --debug
 
 .PHONY: release
 release: modvendor
-	@if [ -z "$(DOCKER_USERNAME)" ]; then \
-		echo "\033[91mDOCKER_USERNAME is required for release\033[0m";\
-		exit 1;\
-	fi
-	@if [ -z "$(DOCKER_PASSWORD)" ]; then \
-		echo "\033[91mDOCKER_PASSWORD is required for release\033[0m";\
-		exit 1;\
-	fi
-	@if [ -z "$(GORELEASER_ACCESS_TOKEN)" ]; then \
-		echo "\033[91mGORELEASER_ACCESS_TOKEN is required for release\033[0m";\
+	@if [ ! -f ".release-env" ]; then \
+		echo "\033[91m.release-env is required for release\033[0m";\
 		exit 1;\
 	fi
 	docker run \
 		--rm \
 		--privileged \
-		-e MAINNET=$(MAINNET) \
-		-e DOCKER_USERNAME=$(DOCKER_USERNAME) \
-		-e DOCKER_PASSWORD=$(DOCKER_PASSWORD) \
-		-e GITHUB_TOKEN=$(GORELEASER_ACCESS_TOKEN) \
+		-e BUILD_FLAGS=$(GORELEASER_FLAGS) \
+		-e LD_FLAGS=$(GORELEASER_LD_FLAGS) \
+		--env-file .release-env \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v `pwd`:/go/src/github.com/ovrclk/akash \
-		goreng/golang-cross:${GOLANG_CROSS_VERSION} \
+		-w /go/src/github.com/ovrclk/akash \
+		troian/golang-cross:${GOLANG_CROSS_VERSION} \
 		release --rm-dist

@@ -14,14 +14,9 @@ builds:
       - CC=o64-clang
       - CXX=o64-clang++
     flags:
-      - -tags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-    ldflags: >
-      -s -w
-      -X github.com/cosmos/cosmos-sdk/version.Name=akash
-      -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-      -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
-      -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - "{{ .Env.BUILD_FLAGS }}"
+    ldflags:
+      - "{{ .Env.LD_FLAGS }}"
   - id: akash-linux-amd64
     binary: akash
     main: ./cmd/akash
@@ -32,14 +27,9 @@ builds:
     env:
       - CGO_ENABLED=1
     flags:
-      - -tags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-    ldflags: >
-      -s -w
-      -X github.com/cosmos/cosmos-sdk/version.Name=akash
-      -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-      -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
-      -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - "{{ .Env.BUILD_FLAGS }}"
+    ldflags:
+      - "{{ .Env.LD_FLAGS }}"
   - id: akash-linux-arm64
     binary: akash
     main: ./cmd/akash
@@ -52,14 +42,9 @@ builds:
       - CC=aarch64-linux-gnu-gcc
       - CXX=aarch64-linux-gnu-g++
     flags:
-      - -tags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-    ldflags: >
-      -s -w
-      -X github.com/cosmos/cosmos-sdk/version.Name=akash
-      -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-      -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
-      -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - "{{ .Env.BUILD_FLAGS }}"
+    ldflags:
+      - "{{ .Env.LD_FLAGS }}"
   - id: akash-windows-amd64
     binary: akash
     main: ./cmd/akash
@@ -72,24 +57,18 @@ builds:
       - CC=x86_64-w64-mingw32-gcc
       - CXX=x86_64-w64-mingw32-g++
     flags:
-      - -tags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-    ldflags: >
-      -s -w
-      -buildmode=exe
-      -X github.com/cosmos/cosmos-sdk/version.Name=akash
-      -X github.com/cosmos/cosmos-sdk/version.AppName=akash
-      -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger,{{if eq .Env.MAINNET "true"}}mainnet{{else}}testnet{{end}}
-      -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
-      -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - "{{ .Env.BUILD_FLAGS }}"
+    ldflags:
+      - -buildmode=exe
+      - "{{ .Env.LD_FLAGS }}"
 
 archives:
   - id: akash
     builds:
-      - akash-windows-amd64
       - akash-darwin-amd64
-      - akash-darwin-arm64
       - akash-linux-amd64
-      - akash-linux-armv7
+      - akash-linux-arm64
+      - akash-windows-amd64
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     wrap_in_directory: true
     format: zip
